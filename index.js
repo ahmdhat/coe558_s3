@@ -1,5 +1,4 @@
 import express from 'express';
-import serverless from 'serverless-http';
 import { DynamoDBClient, PutItemCommand, ScanCommand, GetItemCommand, UpdateItemCommand, DeleteItemCommand } from '@aws-sdk/client-dynamodb';
 import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { v4 as uuidv4 } from 'uuid';
@@ -13,8 +12,8 @@ const TABLE_NAME = 'PromptHistory';
 app.use(express.json());
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
   next();
 });
 
@@ -162,6 +161,7 @@ app.put('/prompts/:id', async (req, res) => {
 // DELETE /prompts/:id
 app.delete('/prompts/:id', async (req, res) => {
   try {
+    // Get prompt to retrieve mediaUrl
     const getParams = {
       TableName: TABLE_NAME,
       Key: { id: { S: req.params.id } },
@@ -174,6 +174,7 @@ app.delete('/prompts/:id', async (req, res) => {
       });
     }
 
+    // Delete media from S3
     const mediaUrl = data.Item.mediaUrl.S;
     const fileName = mediaUrl.split('/').pop();
     const s3Params = {
@@ -182,6 +183,7 @@ app.delete('/prompts/:id', async (req, res) => {
     };
     await s3Client.send(new DeleteObjectCommand(s3Params));
 
+    // Delete from DynamoDB
     const deleteParams = {
       TableName: TABLE_NAME,
       Key: { id: { S: req.params.id } },
@@ -203,5 +205,4 @@ app.delete('/prompts/:id', async (req, res) => {
   }
 });
 
-// Export Lambda handler
-export const handler = serverless(app);
+app.listen(8080, () => console.log('S3 running on port 8080'));
