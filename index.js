@@ -114,7 +114,7 @@ app.get('/prompts/:id', async (req, res) => {
 // PUT /prompts/:id
 app.put('/prompts/:id', async (req, res) => {
   try {
-    const { prompt } = req.body;
+    const { prompt, mediaUrl, mediaType } = req.body;
     if (!prompt) {
       return res.status(400).json({
         status: 'error',
@@ -125,10 +125,12 @@ app.put('/prompts/:id', async (req, res) => {
     const params = {
       TableName: TABLE_NAME,
       Key: { id: { S: req.params.id } },
-      UpdateExpression: 'SET prompt = :p, updatedAt = :u',
+      UpdateExpression: 'SET prompt = :p, updatedAt = :u, mediaUrl = :m, mediaType = :t',
       ExpressionAttributeValues: {
         ':p': { S: prompt },
         ':u': { S: new Date().toISOString() },
+        ':m': { S: mediaUrl },
+        ':t': { S: mediaType },
       },
       ReturnValues: 'ALL_NEW',
     };
